@@ -40,7 +40,7 @@ if __name__ == '__main__':
     for emotion in emotion_map.keys():
         with open(f'dataset/{emotion}_data.csv', 'w', newline='') as f:
             wr = csv.writer(f)
-            f.write('eye_area,inner_mouth_area,eye_inner_mouth_ratio,lip_area,lip_angle,emotion\n')
+            f.write('eye_area,inner_mouth_area,mouth_area,lip_slope,lip_distance_to_eye,emotion\n')
             for landmark in emotion_map[emotion]:
                 data = extract_features(landmark, emotion)
                 wr.writerow(data)

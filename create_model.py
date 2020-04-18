@@ -32,7 +32,7 @@ train_x, train_y = train_data.drop(columns=['emotion']), train_data['emotion']
 test_x, test_y = test_data.drop(columns=['emotion']), test_data['emotion']
 
 
-model = MLPClassifier(hidden_layer_sizes=(150, 100, 50), max_iter=200, random_state=7)
+model = MLPClassifier(hidden_layer_sizes=(150, 100, 50), max_iter=600, random_state=7)
 model.fit(train_x, train_y)
 
 with open('model.pickle', 'wb') as handle:

@@ -4,6 +4,7 @@ import imutils
 from imutils.face_utils.facealigner import FaceAligner, FACIAL_LANDMARKS_68_IDXS
 import pandas as pd
 import os
+from math import sqrt
 
 
 def area_of_polygon(points):
@@ -13,43 +14,37 @@ def area_of_polygon(points):
     :param points:
     :return: Area in pixels
     """
-    print(points)
     return 0.5 * abs(sum(x0*y1 - x1*y0
                          for ((x0, y0), (x1, y1)) in zip(points, points[1:] + [points[0]])))
+
+
+def line_length(p1, p2):
+    """
+    Calculate length between two points
+    """
+    return sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
 
 def slope_of_line(p1, p2):
     """
     Calculate slope of line
-    :param p1:
-    :param p2:
-    :return: Slope of line
     """
     return (p1[1] - p2[1]) / (p1[0] - p2[0])
 
 
 def get_list_of_images(legend, image_path, emotion='happiness'):
     """Fetch a list of images for the provided emotion"""
-    # legend = '/Users/kieran/Documents/code/happy_sad_detector/fer_2013/data/legend.csv'
-    # image_path = '/Users/kieran/Documents/code/happy_sad_detector/fer_2013/images/'
 
     csv_legend = pd.read_csv(legend)
 
     return [os.path.join(image_path, image) for image in csv_legend[csv_legend['emotion'] == emotion]['image']]
 
 
-def get_width_height_of_face(face):
-    w = face.right() - face.left()
-    h = face.bottom() - face.top()
-    return w, h
-
-
 def align_face(image_path, save_image=True):
     """
-    Standardize face orientation of face and
-    :param image_path:
-    :param save_image:
-    :return:
+    Standardize face orientation of face.
+    :param image_path: Path to image
+    :param save_image: Overwrite existing image
     """
     detector = dlib.get_frontal_face_detector()
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -59,8 +54,6 @@ def align_face(image_path, save_image=True):
         for face in faces:
             aligned_image = FaceAligner(predictor, desiredFaceWidth=300).align(image, image, face)
             if save_image:
-                print(image_path)
-
                 cv2.imwrite(image_path, aligned_image)
             else:
                 cv2.imshow("Aligned", aligned_image)
@@ -97,27 +90,35 @@ def extract_features(landmarks, emotion):
     """
     Extract a list of features from the provided face landmarks
         Features:
-            0: eye_area (average of both eyes)
-            1: inner_mouth_area -> teeth
-            2: eye_inner_mouth_ratio -> smaller eyes due to squinting caused by smiling
-            3: lip_area
-            4: lip_angle -> flatter slope indicates smiling
+            0: eye_area
+            1: inner_mouth_area -> Larger indicates open mouth potentially due to smiling
+            2: mouth_area -> Larger indicates larger mouth due to smiling
+            3: lip_slope -> slope of lips
+            3: lip_to_eye_distance -> Shorter indicated smiling
 
-    :param landmarks:
-    :param emotion:
-    :return:
+    :param landmarks: Face landmarks
+    :param emotion: Associated emotion with landmarks. Appended to feature list
+    :return: Feature vector
     """
 
     right_eye_slice = FACIAL_LANDMARKS_68_IDXS['right_eye']
     left_eye_slice = FACIAL_LANDMARKS_68_IDXS['left_eye']
     inner_mouth_slice = FACIAL_LANDMARKS_68_IDXS['inner_mouth']
-    outer_mouth_slice = (48, 61)
-    mouth_area = area_of_polygon(landmarks[outer_mouth_slice[0]:outer_mouth_slice[1]])
-    inner_mouth_area = area_of_polygon(landmarks[inner_mouth_slice[0]:inner_mouth_slice[1]]) or 1
+    outer_mouth_slice = (48, 60)
+
+    # Distance to normalize all measurements
+    nose_to_inner_eye_distance = line_length(landmarks[33], landmarks[39])
+
+    mouth_area = area_of_polygon(landmarks[outer_mouth_slice[0]:outer_mouth_slice[1]]) / nose_to_inner_eye_distance
+    inner_mouth_area = (area_of_polygon(landmarks[inner_mouth_slice[0]:inner_mouth_slice[1]]) or 1) / nose_to_inner_eye_distance
     right_eye_area = area_of_polygon(landmarks[right_eye_slice[0]:right_eye_slice[1]])
     left_eye_area = area_of_polygon(landmarks[left_eye_slice[0]:left_eye_slice[1]])
-    average_eye_area = (right_eye_area + left_eye_area) / 2
-    lip_slope = slope_of_line(landmarks[48], landmarks[51])
-    return [average_eye_area, inner_mouth_area, mouth_area, average_eye_area/inner_mouth_area,
-            lip_slope, emotion]
+    average_eye_area = ((right_eye_area + left_eye_area) / 2) / nose_to_inner_eye_distance
+
+    lip_slope = slope_of_line(landmarks[48], landmarks[50])
+
+    lip_distance_to_eye = line_length(landmarks[36], landmarks[48])
+
+    return [average_eye_area, inner_mouth_area, mouth_area,
+            lip_slope, lip_distance_to_eye, emotion]
 
