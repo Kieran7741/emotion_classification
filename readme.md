@@ -42,10 +42,10 @@ def align_face(image_path, save_image=True):
 ``` 
 * Extract Features  
 
-[Landmarks](landmark_points.jpg)
+![Landmarks](landmark_points.jpg)
 
 ## Results
     Prediction score: 0.8676470588235294
 
-[Confusion matrix](cm.png)
+![Confusion matrix](cm.png)
 
