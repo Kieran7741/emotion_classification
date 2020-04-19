@@ -16,9 +16,9 @@ if __name__ == '__main__':
     print(f'Sad images: {len(sad_images)}; Happy images: {len(happy_images)}, '
           f'Neutral images: {len(neutral_images)}')
 
-    # align images
-    # sad_images + happy_images[:1000] +
-    # for i, image_path in enumerate(neutral_images[:1000]):
+    # Uncomment to implement face alignment on images. This process should be a once off and will take several minutes.
+    # from image_processing.pre_process import align_face
+    # for i, image_path in enumerate(sad_images + happy_images[:1000] + neutral_images[:1000]):
     #     print(f'Image: {i}/{len(sad_images)+ len(happy_images) + len(neutral_images)}')
     #     align_face(image_path)
 
